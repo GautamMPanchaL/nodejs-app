@@ -89,6 +89,10 @@ app.get("/rest/getAllUsers", (req, res) => {
   res.send(userData);
 });
 
+app.get("/", (req, res)=>{
+    res.sendFile(page.html);
+})
+
 app.listen(PORT, () => {
   console.log("Server running on port", PORT);
 });
