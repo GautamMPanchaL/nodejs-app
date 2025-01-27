@@ -3,10 +3,10 @@ name: CI/CD for Node.js App
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
+      - main  # Trigger on push to main branch
   pull_request:
     branches:
-      - main  # Trigger on pull request to the main branch
+      - main  # Trigger on pull request to main branch
 
 jobs:
   deploy:
@@ -25,12 +25,16 @@ jobs:
       run: |
         npm install  # Install the Node.js dependencies specified in package.json
 
+    - name: Run tests (optional)
+      run: |
+        npm test  # Run tests if you have any. You can skip or remove this step if you don't need tests.
+
     - name: Deploy to EC2
       env:
-        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}  # SSH private key stored in GitHub secrets
-        EC2_USER: ubuntu  # EC2 user for SSH access, change if you're using a different user
-        EC2_HOST: ${{ secrets.EC2_PUBLIC_IP }}  # EC2 public IP address stored in GitHub secrets
-        EC2_DIR: /home/ubuntu/nodejs-app  # Path on EC2 where your app is located
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }} 
+        EC2_USER: ubuntu 
+        EC2_HOST: ${{ secrets.EC2_PUBLIC_IP }} 
+        EC2_DIR: /home/ubuntu/nodejs-app
       run: |
         # Set up SSH to connect to EC2
         echo "$PRIVATE_KEY" > private_key.pem
@@ -47,6 +51,6 @@ jobs:
           # Install dependencies if needed
           npm install
 
-          # Start the application with npm (using npm start or your specific start script)
-          npm start  # This will use the "start" script defined in your package.json
+          # Restart the application using pm2 or another method
+          pm2 restart server.js || pm2 start server.js  # Ensure pm2 is installed or use an alternative method to restart
         EOF
