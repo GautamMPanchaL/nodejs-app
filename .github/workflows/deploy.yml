@@ -1,39 +1,56 @@
-name: Node.js CI/CD
+name: CI/CD for Node.js App
 
-# Trigger the workflow on pushes to the "main" branch
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main  # Trigger on push to main branch
+  pull_request:
+    branches:
+      - main  # Trigger on pull request to main branch
 
 jobs:
-  build:
-
-    # This job runs on a self-hosted runner, in this case, your EC2 instance
-    runs-on: self-hosted
+  deploy:
+    runs-on: ubuntu-latest
 
     steps:
-    # Step 1: Checkout the latest code from the GitHub repository
-    - uses: actions/checkout@v4
-
-    # Step 2: Setup Node.js environment using the specified version (e.g., 20.x)
-    - name: Use Node.js 18.19.1
+    - name: Checkout code
+      uses: actions/checkout@v3  # Checkout the repository code
+    
+    - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
-        node-version: '18.19.1'  # Specify Node.js version
-        cache: 'npm'          
+        node-version: '18'  # Set the Node.js version to use (adjust if you need another version)
 
-    # Step 3: Install dependencies
-    - run: npm ci
+    - name: Install dependencies
+      run: |
+        npm install  # Install the Node.js dependencies specified in package.json
 
-    # Step 4: Set up the environment variables by creating a .env file
-    #         Secrets stored in GitHub will be used in the production environment
-    - run: |
-        touch .env
-        echo "${{ secrets.PROD_ENV }}" > .env
+    - name: Run tests (optional)
+      run: |
+        npm test  # Run tests if you have any. You can skip or remove this step if you don't need tests.
 
-    # Step 5: Build the project (only if a build script is present in package.json)
-    - run: npm run build --if-present
+    - name: Deploy to EC2
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}  # SSH private key stored in GitHub secrets
+        EC2_USER: ubuntu  # EC2 user for SSH access, change if you're using a different user
+        EC2_HOST: ${{ secrets.EC2_PUBLIC_IP }}  # EC2 public IP address stored in GitHub secrets
+        EC2_DIR: /home/ubuntu/nodejs-app  # Path on EC2 where your app is located
+      run: |
+        # Set up SSH to connect to EC2
+        echo "$PRIVATE_KEY" > private_key.pem
+        chmod 600 private_key.pem  # Set appropriate permissions for the private key file
 
-    # Step 6: This step you have to update after setting up the nodejs application on ec2 instance
-    #  Restart the Node.js app using PM2 for zero-downtime deployment
-    # - run: pm2 restart node-app
+        # SSH into EC2 and deploy the code
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST <<EOF
+          # Navigate to the app directory
+          cd $EC2_DIR
+          
+          # Pull the latest code from the main branch
+          git pull origin main  # Ensure your branch is correct
+
+          # Install dependencies if needed
+          npm install
+
+          # Restart the application using pm2 or another method
+          pm2 restart server.js || pm2 start server.js  # Ensure pm2 is installed or use an alternative method to restart
+        EOF
