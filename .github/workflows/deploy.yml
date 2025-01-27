@@ -3,10 +3,10 @@ name: CI/CD for Node.js App
 on:
   push:
     branches:
-      - main  # Trigger on push to main branch
+      - main  # Trigger on push to the main branch
   pull_request:
     branches:
-      - main  # Trigger on pull request to main branch
+      - main  # Trigger on pull request to the main branch
 
 jobs:
   deploy:
@@ -47,6 +47,6 @@ jobs:
           # Install dependencies if needed
           npm install
 
-          # Restart the application using pm2 or another method
-          pm2 restart server.js || pm2 start server.js  # Ensure pm2 is installed or use an alternative method to restart
+          # Start the application with npm (using npm start or your specific start script)
+          npm start  # This will use the "start" script defined in your package.json
         EOF
